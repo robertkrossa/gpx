@@ -7,23 +7,45 @@ use std::io::Read;
 use xml::reader::XmlEvent;
 
 use crate::errors::{GpxError, GpxResult};
-use crate::parser::Context;
+use crate::parser::{string, Context};
+use crate::Waypoint;
 
 use super::verify_starting_tag;
 
 /// consume consumes a single string as tag content.
-pub fn consume<R: Read>(context: &mut Context<R>) -> GpxResult<()> {
+pub fn consume<R: Read>(context: &mut Context<R>, waypoint: &mut Waypoint) -> GpxResult<()> {
     verify_starting_tag(context, "extensions")?;
 
     let mut depth = 1;
-    for event in &mut context.reader {
-        match event? {
+    loop {
+        let next_event = {
+            if let Some(next) = context.reader.peek() {
+                match next {
+                    Ok(n) => n,
+                    Err(_) => return Err(GpxError::EventParsingError("waypoint event")),
+                }
+            } else {
+                break;
+            }
+        };
+        match next_event {
             XmlEvent::StartElement { name, .. } => {
                 // I think its bad to hardcode the check on name == "extensions", because it is not a generic approach
                 // and treats inner tags that are called "extensions" differently from any other inner tags, like "a", "foo", "bar"
                 // It is correct, but feels wrong, maybe only a personal feeling
-                if name.local_name == "extensions" {
-                    depth += 1;
+
+                match name.local_name.as_ref() {
+                    "extensions" => {
+                        depth += 1;
+                    }
+                    "power" => waypoint.type_ = Some(string::consume(context, "type", false)?),
+                    child => {
+                        println!("Found unmatched name: {}", child);
+                        // return Err(GpxError::InvalidChildElement(
+                        //     String::from(child),
+                        //     "waypoint",
+                        // ));
+                    }
                 }
             }
             XmlEvent::EndElement { name } => {
