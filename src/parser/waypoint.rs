@@ -6,7 +6,7 @@ use geo_types::Point;
 use xml::reader::XmlEvent;
 
 use crate::errors::{GpxError, GpxResult};
-use crate::parser::{extensions, fix, link, string, time, verify_starting_tag, Context};
+use crate::parser::{waypoint_extensions, fix, link, string, time, verify_starting_tag, Context};
 use crate::{GpxVersion, Waypoint};
 
 /// consume consumes a GPX waypoint from the `reader` until it ends.
@@ -112,7 +112,7 @@ pub fn consume<R: Read>(context: &mut Context<R>, tagname: &'static str) -> GpxR
                     }
 
                     // Finally the GPX 1.1 extensions
-                    "extensions" => extensions::consume(context, waypoint)?,
+                    "extensions" => waypoint_extensions::consume(context, &mut waypoint)?,
                     child => {
                         return Err(GpxError::InvalidChildElement(
                             String::from(child),

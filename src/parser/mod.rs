@@ -46,6 +46,7 @@ pub mod time;
 pub mod track;
 pub mod tracksegment;
 pub mod waypoint;
+pub mod waypoint_extensions;
 
 use std::io::Read;
 use std::iter::Peekable;

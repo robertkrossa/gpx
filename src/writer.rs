@@ -378,6 +378,31 @@ fn write_waypoint<W: Write>(
     write_value_if_exists("pdop", &waypoint.pdop, writer)?;
     write_value_if_exists("ageofdgpsdata", &waypoint.dgps_age, writer)?;
     write_value_if_exists("dgpsid", &waypoint.dgpsid, writer)?;
+    write_extensions_if_exists(&waypoint, writer)?;
     write_xml_event(XmlEvent::end_element(), writer)?;
     Ok(())
+}
+
+fn write_extensions_if_exists<W: Write>(
+    waypoint: &Waypoint,
+    writer: &mut EventWriter<W>,
+) -> GpxResult<()> {
+    let trackpoint_extensions_assigned = waypoint.cadence.is_some() || waypoint.temperature.is_some() || waypoint.heart_rate.is_some();
+    let assigned = waypoint.power.is_some() || trackpoint_extensions_assigned;
+    if assigned {
+        write_xml_event(XmlEvent::start_element("extensions"), writer)?;
+        if trackpoint_extensions_assigned {
+            write_xml_event(XmlEvent::start_element("gpxtpx:TrackPointExtension"), writer)?;
+            write_value_if_exists("gpxtpx:cad", &waypoint.cadence, writer)?;
+            write_value_if_exists("gpxtpx:atemp", &waypoint.temperature, writer)?;
+            write_value_if_exists("gpxtpx:hr", &waypoint.heart_rate, writer)?;
+            write_xml_event(XmlEvent::end_element(), writer)?;
+        }
+        write_value_if_exists("power", &waypoint.power, writer)?;
+        write_xml_event(XmlEvent::end_element(), writer)?;
+
+        return Ok(());
+    } else {
+        return Ok(());
+    }
 }
